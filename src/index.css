@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary:         26 26 46;
+  --color-primary-light:   22 33 62;
+  --color-primary-lighter: 15 52 96;
+}
+
+html, body {
+  background-color: rgb(var(--color-primary));
+  color: #f3f4f6;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: rgb(var(--color-primary-light)); }
+::-webkit-scrollbar-thumb  { background: rgb(var(--color-primary-lighter)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #00b4d8; }
