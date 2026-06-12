@@ -66,10 +66,13 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { slot, name, email, phone, role, id } = req.body || {}
-  if (!slot || !name || !email || !role) {
-    return res.status(400).json({ error: 'Missing required fields: slot, name, email, role' })
+  const raw = req.body
+  const body = typeof raw === 'string' ? JSON.parse(raw) : (raw || {})
+  const { slot, name, email, phone, role, id } = body
+  if (!slot || !name || !email) {
+    return res.status(400).json({ error: 'Missing required fields: slot, name, email' })
   }
+  const roleLabel = role || 'Candidate'
 
   const token = await getGoogleToken()
 
@@ -105,8 +108,8 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          summary:     `Interview — ${name} · ${role}`,
-          description: `Round 1 Interview · Streamhost · Google Meet\nCandidate: ${name}\nRole: ${role}${phone ? `\nPhone: ${phone}` : ''}`,
+          summary:     `Interview — ${name} · ${roleLabel}`,
+          description: `Round 1 Interview · Streamhost · Google Meet\nCandidate: ${name}\nRole: ${roleLabel}${phone ? `\nPhone: ${phone}` : ''}`,
           start: { dateTime: slotDt.toISOString(), timeZone: 'Asia/Kuala_Lumpur' },
           end:   { dateTime: endDt.toISOString(),  timeZone: 'Asia/Kuala_Lumpur' },
           attendees: [
@@ -142,10 +145,10 @@ export default async function handler(req, res) {
 
   const icsPayload = {
     uid:             `${eventId}@streamhost`,
-    title:           `Interview — ${role} at Streamhost`,
+    title:           `Interview — ${roleLabel} at Streamhost`,
     start:           slotDt.toISOString(),
     durationMinutes: 30,
-    description:     `Interviewer: Alvin Wee (CEO, Streamhost)\nRole: ${role}`,
+    description:     `Interviewer: Alvin Wee (CEO, Streamhost)\nRole: ${roleLabel}`,
     attendees:       [
       { name, email },
       { name: 'Alvin Wee', email: process.env.ALVIN_EMAIL || 'alvinwee@streamhost.app' },
@@ -193,7 +196,7 @@ Streamhost`
     const internalBody = `New interview booked via the booking page.
 
 Candidate: ${name}
-Role: ${role}
+Role: ${roleLabel}
 Email: ${email}
 Phone: ${phone || '(not provided)'}
 Slot: ${slotFmt}
@@ -233,7 +236,7 @@ Event ID: ${eventId}`
       // Create new candidate record
       const { data: newCand } = await supabase
         .from('hr_candidates')
-        .insert({ name, email, phone: phone || null, role_applied: role, stage: 'r1_scheduled', applied_at: new Date().toISOString() })
+        .insert({ name, email, phone: phone || null, role_applied: roleLabel, stage: 'r1_scheduled', applied_at: new Date().toISOString() })
         .select('id')
         .single()
 
