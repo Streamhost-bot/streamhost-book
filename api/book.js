@@ -39,6 +39,10 @@ function generateICS({ uid, title, start, durationMinutes, description, attendee
     `SUMMARY:${title}`,
     `DESCRIPTION:${desc}`,
     ...attendees.map(a => `ATTENDEE;CN=${a.name};RSVP=TRUE:mailto:${a.email}`),
+    // 24h reminder
+    'BEGIN:VALARM', 'TRIGGER:-PT1440M', 'ACTION:DISPLAY', 'DESCRIPTION:Interview tomorrow — Streamhost', 'END:VALARM',
+    // 1h reminder
+    'BEGIN:VALARM', 'TRIGGER:-PT60M', 'ACTION:DISPLAY', 'DESCRIPTION:Interview in 1 hour — Streamhost', 'END:VALARM',
     'END:VEVENT', 'END:VCALENDAR',
   ].join('\r\n')
 }
@@ -115,7 +119,14 @@ export default async function handler(req, res) {
               conferenceSolutionKey: { type: 'hangoutsMeet' },
             },
           },
-          reminders: { useDefault: true },
+          reminders: {
+            useDefault: false,
+            overrides: [
+              { method: 'email', minutes: 1440 },
+              { method: 'email', minutes: 60 },
+              { method: 'popup', minutes: 15 },
+            ],
+          },
         }),
       }
     )
