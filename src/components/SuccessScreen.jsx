@@ -21,9 +21,7 @@ export default function SuccessScreen({ slot, meetLink, name, email }) {
       <div className="w-full max-w-md text-center">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-10">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-            <span className="text-white font-bold text-sm">S</span>
-          </div>
+          <img src="/logo.jpg" alt="Streamhost" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
           <span className="text-white font-semibold text-base">Streamhost</span>
         </div>
 

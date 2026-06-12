@@ -81,9 +81,7 @@ export default function SlotPicker({ booking, onSlotSelect, conflictBanner, onDi
       <div className="md:w-72 md:min-h-screen bg-primary-light border-b md:border-b-0 md:border-r border-primary-lighter flex flex-col p-6 md:p-8">
         {/* Logo */}
         <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-sm">S</span>
-          </div>
+          <img src="/logo.jpg" alt="Streamhost" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
           <span className="text-white font-semibold text-base">Streamhost</span>
         </div>
 
