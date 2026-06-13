@@ -48,6 +48,64 @@ function generateICS({ uid, title, start, durationMinutes, description, attendee
   ].join('\r\n')
 }
 
+function buildEmailHtml(body) {
+  const lines = body.split('\n').map(l => `<p style="margin:0 0 10px 0;color:#374151;font-size:15px;line-height:1.6">${l || '&nbsp;'}</p>`).join('')
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px"><tr><td align="center">
+<table width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1)">
+<tr><td style="background:#111827;padding:24px 32px">
+  <table cellpadding="0" cellspacing="0"><tr>
+    <td><img src="https://streamhost-book.vercel.app/logo.jpg" width="36" height="36" alt="Streamhost" style="border-radius:8px;display:block"></td>
+    <td style="padding-left:10px"><span style="color:#ffffff;font-size:16px;font-weight:600">Streamhost</span></td>
+  </tr></table>
+</td></tr>
+<tr><td style="padding:32px 32px 24px 32px">${lines}</td></tr>
+<tr><td style="padding:16px 32px 28px 32px;border-top:1px solid #e5e7eb">
+  <p style="margin:0;color:#9ca3af;font-size:12px">© Streamhost · <a href="mailto:info@streamhost.app" style="color:#9ca3af">info@streamhost.app</a></p>
+</td></tr>
+</table></td></tr></table></body></html>`
+}
+
+function buildInternalNotifHtml({ name, role, email, phone, slotFmt, meetLink, eventId }) {
+  const row = (label, value, isLink) => `
+    <tr>
+      <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;font-weight:500;white-space:nowrap;width:1%">${label}</td>
+      <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;color:#111827;font-size:13px">${isLink ? `<a href="${value}" style="color:#4f46e5">${value}</a>` : value}</td>
+    </tr>`
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px"><tr><td align="center">
+<table width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1)">
+  <tr><td style="background:#111827;padding:24px 32px">
+    <table cellpadding="0" cellspacing="0"><tr>
+      <td><img src="https://streamhost-book.vercel.app/logo.jpg" width="36" height="36" alt="Streamhost" style="border-radius:8px;display:block"></td>
+      <td style="padding-left:10px"><span style="color:#ffffff;font-size:16px;font-weight:600">Streamhost</span></td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="padding:28px 32px 8px 32px">
+    <p style="margin:0 0 4px 0;font-size:20px;font-weight:700;color:#111827">New Interview Booked</p>
+    <p style="margin:0;font-size:14px;color:#6b7280">A candidate has self-scheduled via the booking page.</p>
+  </td></tr>
+  <tr><td style="padding:20px 32px">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">
+      ${row('Candidate', name)}
+      ${row('Role', role)}
+      ${row('Email', email)}
+      ${row('Phone', phone || '—')}
+      ${row('Date & Time', slotFmt + ' (MYT)')}
+      ${meetLink ? row('Meet Link', meetLink, true) : ''}
+    </table>
+  </td></tr>
+  ${meetLink ? `<tr><td style="padding:0 32px 28px 32px">
+    <a href="${meetLink}" style="display:inline-block;background:#4f46e5;color:#ffffff;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;text-decoration:none">Join Google Meet</a>
+  </td></tr>` : ''}
+  <tr><td style="padding:16px 32px 28px 32px;border-top:1px solid #e5e7eb">
+    <p style="margin:0;color:#9ca3af;font-size:12px">© Streamhost · <a href="mailto:info@streamhost.app" style="color:#9ca3af">info@streamhost.app</a></p>
+  </td></tr>
+</table></td></tr></table></body></html>`
+}
+
 function isValidUUID(str) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
 }
@@ -294,7 +352,7 @@ Streamhost`
       to:      email,
       subject: 'Your Interview is Confirmed — Streamhost',
       text:    candidateBody,
-      html:    candidateBody.replace(/\n/g, '<br>'),
+      html:    buildEmailHtml(candidateBody),
       attachments: [{
         filename:    'interview-invite.ics',
         content:     generateICS(icsPayload),
@@ -304,21 +362,14 @@ Streamhost`
 
     // Internal notification
     const notifyEmail = process.env.INTERNAL_NOTIFY_EMAIL || process.env.ALVIN_EMAIL || 'info@streamhost.app'
-    const internalBody = `New interview booked via the booking page.
-
-Candidate: ${name}
-Role: ${roleLabel}
-Email: ${email}
-Phone: ${phone || '(not provided)'}
-Slot: ${slotFmt}
-Meet Link: ${meetLink || 'N/A'}
-Event ID: ${eventId}`
+    const internalPlain = `New interview booked.\n\nCandidate: ${name}\nRole: ${roleLabel}\nEmail: ${email}\nPhone: ${phone || '(not provided)'}\nSlot: ${slotFmt}\nMeet Link: ${meetLink || 'N/A'}`
 
     await transporter.sendMail({
       from,
       to:      notifyEmail,
-      subject: `New Interview Booked — ${name} · ${role}`,
-      text:    internalBody,
+      subject: `New Interview Booked — ${name} · ${roleLabel}`,
+      text:    internalPlain,
+      html:    buildInternalNotifHtml({ name, role: roleLabel, email, phone, slotFmt, meetLink, eventId }),
     })
   } catch (emailErr) {
     console.error('Email send failed (non-fatal):', emailErr.message)
