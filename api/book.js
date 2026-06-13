@@ -218,10 +218,14 @@ Event ID: ${eventId}`
     const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
     if (id && isValidUUID(id)) {
-      // Update existing candidate
+      // Update existing candidate — sync any name/email/phone edits from the form
+      const patch = { stage: 'r1_scheduled', updated_at: new Date().toISOString() }
+      if (name)  patch.name  = name
+      if (email) patch.email = email
+      if (phone) patch.phone = phone
       await supabase
         .from('hr_candidates')
-        .update({ stage: 'r1_scheduled', updated_at: new Date().toISOString() })
+        .update(patch)
         .eq('id', id)
 
       await supabase.from('hr_interview_slots').insert({
