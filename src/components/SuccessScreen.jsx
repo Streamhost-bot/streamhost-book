@@ -89,10 +89,11 @@ export default function SuccessScreen({ slot, meetLink, name, email, isReschedul
           </a>
         )}
 
-        <p className="text-xs text-gray-500 mt-4">
-          Need to reschedule? Reply to the confirmation email or contact{' '}
-          <a href="mailto:info@streamhost.app" className="text-accent hover:underline">info@streamhost.app</a>
-        </p>
+        {!isReschedule && (
+          <p className="text-xs text-gray-500 mt-4">
+            Need to reschedule? Check your confirmation email for the reschedule link. You have <span className="text-gray-300">one reschedule</span> available.
+          </p>
+        )}
       </div>
     </div>
   )
