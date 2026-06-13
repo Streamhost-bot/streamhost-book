@@ -89,7 +89,15 @@ export default function SuccessScreen({ slot, meetLink, name, email, isReschedul
           </a>
         )}
 
-        {!isReschedule && (
+        {isReschedule ? (
+          <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-3 text-sm text-center">
+            <p className="text-yellow-300 font-medium mb-0.5">No more reschedules available</p>
+            <p className="text-xs text-gray-400">
+              You've used your one reschedule. For further changes, contact{' '}
+              <a href="mailto:info@streamhost.app" className="text-accent hover:underline">info@streamhost.app</a>.
+            </p>
+          </div>
+        ) : (
           <p className="text-xs text-gray-500 mt-4">
             Need to reschedule? Check your confirmation email for the reschedule link. You have <span className="text-gray-300">one reschedule</span> available.
           </p>
