@@ -138,11 +138,29 @@ export default async function handler(req, res) {
       const candidateName = name || 'Candidate'
       const roleLabel = role || 'Candidate'
 
+      const rescheduleBody = `Hi ${candidateName},
+
+Your interview has been rescheduled successfully.
+
+New Date & Time: ${newSlotFmt} (Malaysia Time, UTC+8)
+Duration: 30 minutes
+Format: Online — Google Meet
+Meeting Link: ${meetLink || '(same as before)'}
+Interviewer: Alvin Wee, CEO — Streamhost
+
+Your Google Meet link has not changed — use the same link as before.
+
+Please note: this was your one allowed reschedule. If you need any further changes, please reply to this email or contact info@streamhost.app directly.
+
+See you soon,
+Alvin Wee
+Streamhost`
+
       await transporter.sendMail({
         from, to: email,
         subject: 'Your Interview Has Been Rescheduled — Streamhost',
-        text: `Hi ${candidateName},\n\nYour interview has been rescheduled.\n\nNew Time: ${newSlotFmt} (Malaysia Time, UTC+8)\nDuration: 30 minutes\nFormat: Online — Google Meet\nMeeting Link: ${meetLink || '(same as before)'}\n\nYour Google Meet link has not changed.\n\nSee you soon,\nAlvin Wee\nStreamhost`,
-        html: `<p>Hi ${candidateName},</p><p>Your interview has been rescheduled.</p><p><strong>New Time:</strong> ${newSlotFmt} (Malaysia Time, UTC+8)<br><strong>Duration:</strong> 30 minutes<br><strong>Format:</strong> Online — Google Meet<br><strong>Meeting Link:</strong> <a href="${meetLink}">${meetLink}</a></p><p>Your Google Meet link has not changed.</p><p>See you soon,<br>Alvin Wee<br>Streamhost</p>`,
+        text: rescheduleBody,
+        html: rescheduleBody.replace(/\n/g, '<br>'),
       })
 
       const notifyEmail = process.env.INTERNAL_NOTIFY_EMAIL || process.env.ALVIN_EMAIL || 'info@streamhost.app'
@@ -250,6 +268,7 @@ export default async function handler(req, res) {
     const from        = `"${process.env.FROM_NAME || 'Alvin Wee'}" <${process.env.FROM_EMAIL || 'info@streamhost.app'}>`
 
     // Candidate confirmation
+    const rescheduleLink = id ? `https://streamhost-book.vercel.app?name=${encodeURIComponent(name)}&role=${encodeURIComponent(roleLabel)}&email=${encodeURIComponent(email)}&id=${id}` : null
     const candidateBody = `Hi ${name},
 
 Your interview is confirmed. Here are your details:
@@ -260,7 +279,10 @@ Format: Online — Google Meet
 Meeting Link: ${meetLink || '(link in your calendar invite)'}
 Interviewer: Alvin Wee, CEO — Streamhost
 
-A calendar invite has been sent to your email. If you need to reschedule, please reply to this email.
+A calendar invite has been sent to your email.
+
+Need to reschedule? You have one reschedule available. Use your booking link:
+${rescheduleLink || 'Reply to this email to reschedule.'}
 
 See you soon,
 Alvin Wee
