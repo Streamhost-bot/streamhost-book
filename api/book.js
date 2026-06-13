@@ -68,7 +68,95 @@ export default async function handler(req, res) {
 
   const raw = req.body
   const body = typeof raw === 'string' ? JSON.parse(raw) : (raw || {})
-  const { slot, name, email, phone, role, id } = body
+  const { slot, name, email, phone, role, id, action, existingSlotId } = body
+
+  // ── RESCHEDULE ────────────────────────────────────────────────────────
+  if (action === 'reschedule') {
+    if (!slot || !id || !isValidUUID(id)) {
+      return res.status(400).json({ error: 'Missing required fields' })
+    }
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+    // Find existing slot
+    const { data: existingSlot } = await supabase
+      .from('hr_interview_slots')
+      .select('*')
+      .eq('candidate_id', id)
+      .order('scheduled_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (!existingSlot) return res.status(404).json({ error: 'No existing booking found' })
+    if (existingSlot.rescheduled_at) {
+      return res.status(409).json({ error: 'already_rescheduled', message: 'You have already rescheduled once.' })
+    }
+
+    const oldSlotFmt = fmtMYT(existingSlot.scheduled_at)
+    const newSlotDt = new Date(slot)
+    const newEndDt = new Date(newSlotDt.getTime() + 30 * 60 * 1000)
+    const newSlotFmt = fmtMYT(slot)
+    const now = new Date().toISOString()
+
+    // Patch Google Calendar event
+    const token = await getGoogleToken()
+    const meetLink = existingSlot.meeting_link
+    if (existingSlot.google_event_id) {
+      try {
+        await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${existingSlot.google_event_id}?sendUpdates=all`,
+          {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              start: { dateTime: newSlotDt.toISOString(), timeZone: 'Asia/Kuala_Lumpur' },
+              end:   { dateTime: newEndDt.toISOString(),  timeZone: 'Asia/Kuala_Lumpur' },
+              summary: `Interview — ${name || 'Candidate'} · ${role || 'Candidate'}`,
+            }),
+          }
+        )
+      } catch (e) {
+        console.error('Calendar patch failed (non-fatal):', e.message)
+      }
+    }
+
+    // Update slot in Supabase
+    await supabase.from('hr_interview_slots')
+      .update({ scheduled_at: newSlotDt.toISOString(), rescheduled_at: now })
+      .eq('id', existingSlot.id)
+
+    // Sync any name/email/phone changes
+    const patch = { updated_at: now }
+    if (name)  patch.name  = name
+    if (email) patch.email = email
+    if (phone) patch.phone = phone
+    await supabase.from('hr_candidates').update(patch).eq('id', id)
+
+    // Send reschedule emails (non-fatal)
+    try {
+      const transporter = nodemailer.createTransport(SMTP)
+      const from = `"${process.env.FROM_NAME || 'Alvin Wee'}" <${process.env.FROM_EMAIL || 'info@streamhost.app'}>`
+      const candidateName = name || 'Candidate'
+      const roleLabel = role || 'Candidate'
+
+      await transporter.sendMail({
+        from, to: email,
+        subject: 'Your Interview Has Been Rescheduled — Streamhost',
+        text: `Hi ${candidateName},\n\nYour interview has been rescheduled.\n\nNew Time: ${newSlotFmt} (Malaysia Time, UTC+8)\nDuration: 30 minutes\nFormat: Online — Google Meet\nMeeting Link: ${meetLink || '(same as before)'}\n\nYour Google Meet link has not changed.\n\nSee you soon,\nAlvin Wee\nStreamhost`,
+        html: `<p>Hi ${candidateName},</p><p>Your interview has been rescheduled.</p><p><strong>New Time:</strong> ${newSlotFmt} (Malaysia Time, UTC+8)<br><strong>Duration:</strong> 30 minutes<br><strong>Format:</strong> Online — Google Meet<br><strong>Meeting Link:</strong> <a href="${meetLink}">${meetLink}</a></p><p>Your Google Meet link has not changed.</p><p>See you soon,<br>Alvin Wee<br>Streamhost</p>`,
+      })
+
+      const notifyEmail = process.env.INTERNAL_NOTIFY_EMAIL || process.env.ALVIN_EMAIL || 'info@streamhost.app'
+      await transporter.sendMail({
+        from, to: notifyEmail,
+        subject: `Interview Rescheduled — ${candidateName} · ${roleLabel}`,
+        text: `Interview rescheduled.\n\nCandidate: ${candidateName}\nRole: ${roleLabel}\nEmail: ${email}\nOld Time: ${oldSlotFmt}\nNew Time: ${newSlotFmt}\nMeet Link: ${meetLink || 'N/A'}`,
+      })
+    } catch (emailErr) {
+      console.error('Reschedule email failed (non-fatal):', emailErr.message)
+    }
+
+    return res.status(200).json({ ok: true, meetLink, slot })
+  }
   if (!slot || !name || !email) {
     return res.status(400).json({ error: 'Missing required fields: slot, name, email' })
   }
@@ -235,6 +323,7 @@ Event ID: ${eventId}`
         duration_minutes: 30,
         platform:         'Google Meet',
         meeting_link:     meetLink,
+        google_event_id:  eventId,
       })
     } else if (process.env.BOOK_AUTO_CREATE_CANDIDATE === 'true') {
       // Create new candidate record
@@ -252,6 +341,7 @@ Event ID: ${eventId}`
           duration_minutes: 30,
           platform:         'Google Meet',
           meeting_link:     meetLink,
+          google_event_id:  eventId,
         })
         await supabase.from('hr_stage_history').insert({
           candidate_id: newCand.id,

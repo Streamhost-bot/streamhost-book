@@ -15,7 +15,7 @@ function fmtSlot(iso) {
   })
 }
 
-export default function SuccessScreen({ slot, meetLink, name, email }) {
+export default function SuccessScreen({ slot, meetLink, name, email, isReschedule }) {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-md text-center">
@@ -32,9 +32,11 @@ export default function SuccessScreen({ slot, meetLink, name, email }) {
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold text-white mb-2">You're booked!</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">{isReschedule ? 'Interview rescheduled!' : "You're booked!"}</h1>
         <p className="text-gray-400 text-sm mb-8">
-          {name ? `See you soon, ${name.split(' ')[0]}!` : 'See you soon!'} Your interview is confirmed.
+          {isReschedule
+            ? `Got it, ${name ? name.split(' ')[0] + '!' : ''} Your new time is confirmed. Same Google Meet link.`
+            : `${name ? `See you soon, ${name.split(' ')[0]}!` : 'See you soon!'} Your interview is confirmed.`}
         </p>
 
         {/* Details card */}

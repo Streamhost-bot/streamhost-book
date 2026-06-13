@@ -15,7 +15,7 @@ function fmtSlot(iso) {
   })
 }
 
-export default function ConfirmForm({ slot, booking, onBack, onSubmit, submitting, error }) {
+export default function ConfirmForm({ slot, booking, onBack, onSubmit, submitting, error, isReschedule, existingSlot }) {
   const [form, setForm] = useState({
     name:  booking.name  || '',
     email: booking.email || '',
@@ -75,13 +75,26 @@ export default function ConfirmForm({ slot, booking, onBack, onSubmit, submittin
           <ArrowLeft size={14} />Back
         </button>
 
-        <h1 className="text-xl font-semibold text-white mb-1">Confirm your details</h1>
-        <p className="text-sm text-gray-400 mb-6">Double-check everything before confirming.</p>
+        <h1 className="text-xl font-semibold text-white mb-1">
+          {isReschedule ? 'Confirm reschedule' : 'Confirm your details'}
+        </h1>
+        <p className="text-sm text-gray-400 mb-6">
+          {isReschedule ? 'Your Google Meet link stays the same — only the time changes.' : 'Double-check everything before confirming.'}
+        </p>
+
+        {/* Slot change summary for reschedule */}
+        {isReschedule && existingSlot && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-3 mb-4 space-y-1">
+            <p className="text-xs text-yellow-400 font-medium uppercase tracking-wide">Changing from</p>
+            <p className="text-sm text-gray-300 line-through">{fmtSlot(existingSlot.scheduled_at)}</p>
+          </div>
+        )}
 
         {/* Selected slot card */}
         <div className="flex items-start gap-3 bg-primary-light border border-accent/30 rounded-xl px-4 py-3.5 mb-6">
           <Calendar size={16} className="text-accent flex-shrink-0 mt-0.5" />
           <div>
+            <p className="text-xs text-accent font-medium mb-0.5">{isReschedule ? 'New time' : ''}</p>
             <p className="text-sm font-semibold text-white">{fmtSlot(slot)}</p>
             <p className="text-xs text-gray-400 mt-0.5">Malaysia Time (MYT, UTC+8) · 30 min · Google Meet</p>
           </div>
@@ -130,9 +143,9 @@ export default function ConfirmForm({ slot, booking, onBack, onSubmit, submittin
             className="w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent-dark text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
           >
             {submitting ? (
-              <><Loader2 size={16} className="animate-spin" />Creating your interview…</>
+              <><Loader2 size={16} className="animate-spin" />{isReschedule ? 'Rescheduling…' : 'Creating your interview…'}</>
             ) : (
-              'Confirm My Interview Slot'
+              isReschedule ? 'Confirm New Time' : 'Confirm My Interview Slot'
             )}
           </button>
 
