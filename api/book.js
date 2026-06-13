@@ -6,6 +6,7 @@ const SMTP = {
   port:   parseInt(process.env.SMTP_PORT || '465'),
   secure: process.env.SMTP_SECURE !== 'false',
   auth:   { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  tls:    { rejectUnauthorized: false },
 }
 
 async function getGoogleToken() {
