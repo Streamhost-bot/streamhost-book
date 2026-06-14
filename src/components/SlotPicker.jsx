@@ -59,7 +59,7 @@ export default function SlotPicker({ booking, onSlotSelect, conflictBanner, onDi
   }
 
   function handleDateClick(dateKey, date) {
-    if (date < today) return
+    if (date <= today) return
     if (!slots[dateKey] || slots[dateKey].length === 0) return
     setSelectedDate(dateKey)
     onDismissConflict()
@@ -178,7 +178,7 @@ export default function SlotPicker({ booking, onSlotSelect, conflictBanner, onDi
             <div className="grid grid-cols-5 gap-2 mb-6">
               {weekDays.map((date, i) => {
                 const key = formatDateKey(date)
-                const isPast = date < today
+                const isPast = date <= today
                 const hasSlots = !isPast && slots[key] && slots[key].length > 0
                 const isSelected = key === selectedDate
                 return (
