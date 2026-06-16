@@ -1,5 +1,7 @@
 import React from 'react'
-import { ArrowLeft, Calendar, Video, Clock, Loader2, User, Mail } from 'lucide-react'
+import { ArrowLeft, Calendar, Video, Clock, MapPin, Loader2, User, Mail } from 'lucide-react'
+
+const R2_ADDRESS = 'Mercu Summer Suites, 8, Jalan Cendana, 50250 Kuala Lumpur'
 
 function fmtSlot(iso) {
   if (!iso) return ''
@@ -10,7 +12,7 @@ function fmtSlot(iso) {
   })
 }
 
-export default function ConfirmForm({ slot, booking, onBack, onSubmit, submitting, error, isReschedule, existingSlot }) {
+export default function ConfirmForm({ slot, booking, round, onBack, onSubmit, submitting, error, isReschedule, existingSlot }) {
   function handleSubmit(e) {
     e.preventDefault()
     onSubmit(booking)
@@ -38,11 +40,24 @@ export default function ConfirmForm({ slot, booking, onBack, onSubmit, submittin
           )}
           <div className="pt-2 space-y-2.5">
             <div className="flex items-center gap-2.5 text-sm text-gray-300">
-              <Clock size={14} className="text-accent flex-shrink-0" /><span>30 minutes</span>
+              <Clock size={14} className="text-accent flex-shrink-0" />
+              <span>{round === 2 ? '60 minutes' : '30 minutes'}</span>
             </div>
-            <div className="flex items-center gap-2.5 text-sm text-gray-300">
-              <Video size={14} className="text-accent flex-shrink-0" /><span>Google Meet</span>
-            </div>
+            {round === 2 ? (
+              <>
+                <div className="flex items-center gap-2.5 text-sm text-gray-300">
+                  <MapPin size={14} className="text-accent flex-shrink-0" /><span>In-Person</span>
+                </div>
+                <div className="flex items-start gap-2.5 text-sm text-gray-300">
+                  <MapPin size={14} className="text-accent flex-shrink-0 mt-0.5" />
+                  <span className="leading-snug">{R2_ADDRESS}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2.5 text-sm text-gray-300">
+                <Video size={14} className="text-accent flex-shrink-0" /><span>Google Meet</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -57,7 +72,9 @@ export default function ConfirmForm({ slot, booking, onBack, onSubmit, submittin
           {isReschedule ? 'Confirm reschedule' : 'Confirm your booking'}
         </h1>
         <p className="text-sm text-gray-400 mb-6">
-          {isReschedule ? 'Your Google Meet link stays the same — only the time changes.' : 'Review your details and confirm your slot.'}
+          {isReschedule
+            ? (round === 2 ? 'The venue stays the same — only the time changes.' : 'Your Google Meet link stays the same — only the time changes.')
+            : 'Review your details and confirm your slot.'}
         </p>
 
         {/* Slot change summary for reschedule */}
@@ -74,7 +91,9 @@ export default function ConfirmForm({ slot, booking, onBack, onSubmit, submittin
           <div>
             {isReschedule && <p className="text-xs text-accent font-medium mb-0.5">New time</p>}
             <p className="text-sm font-semibold text-white">{fmtSlot(slot)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Malaysia Time (MYT, UTC+8) · 30 min · Google Meet</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {round === 2 ? 'Malaysia Time (MYT, UTC+8) · 60 min · In-Person' : 'Malaysia Time (MYT, UTC+8) · 30 min · Google Meet'}
+            </p>
           </div>
         </div>
 

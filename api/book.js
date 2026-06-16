@@ -127,7 +127,11 @@ export default async function handler(req, res) {
 
   const raw = req.body
   const body = typeof raw === 'string' ? JSON.parse(raw) : (raw || {})
-  const { slot, name, email, phone, role, id, action, existingSlotId } = body
+  const { slot, name, email, phone, role, id, action, existingSlotId, round: rawRound } = body
+  const round = parseInt(rawRound) || 1
+  const isR2 = round === 2
+  const duration = isR2 ? 60 : 30
+  const R2_ADDRESS = 'Mercu Summer Suites, 8, Jalan Cendana, 50250 Kuala Lumpur'
 
   // ── RESCHEDULE ────────────────────────────────────────────────────────
   if (action === 'reschedule') {
@@ -151,8 +155,11 @@ export default async function handler(req, res) {
     }
 
     const oldSlotFmt = fmtMYT(existingSlot.scheduled_at)
+    const slotRound = existingSlot.round || 1
+    const slotDuration = existingSlot.duration_minutes || (slotRound === 2 ? 60 : 30)
+    const slotIsR2 = slotRound === 2
     const newSlotDt = new Date(slot)
-    const newEndDt = new Date(newSlotDt.getTime() + 30 * 60 * 1000)
+    const newEndDt = new Date(newSlotDt.getTime() + slotDuration * 60 * 1000)
     const newSlotFmt = fmtMYT(slot)
     const now = new Date().toISOString()
 
@@ -197,7 +204,25 @@ export default async function handler(req, res) {
       const candidateName = name || 'Candidate'
       const roleLabel = role || 'Candidate'
 
-      const rescheduleBody = `Hi ${candidateName},
+      const rescheduleBody = slotIsR2
+        ? `Hi ${candidateName},
+
+Your Round 2 interview has been rescheduled successfully.
+
+New Date & Time: ${newSlotFmt} (Malaysia Time, UTC+8)
+Duration: 60 minutes
+Format: In-Person
+Venue: Mercu Summer Suites, 8, Jalan Cendana, 50250 Kuala Lumpur
+Interviewer: Alvin Wee, CEO — Streamhost
+
+Please arrive 5–10 minutes early. Reply to this email if you need directions.
+
+Please note: this was your one allowed reschedule. If you need any further changes, please reply to this email or contact info@streamhost.app directly.
+
+See you soon,
+Alvin Wee
+Streamhost`
+        : `Hi ${candidateName},
 
 Your interview has been rescheduled successfully.
 
@@ -244,7 +269,7 @@ Streamhost`
   // ── 1. Double-booking guard ────────────────────────────────────────
   const slotDt       = new Date(slot)
   const bufferStart  = new Date(slotDt.getTime() - 30 * 60 * 1000)
-  const bufferEnd    = new Date(slotDt.getTime() + 60 * 60 * 1000)
+  const bufferEnd    = new Date(slotDt.getTime() + (duration + 30) * 60 * 1000)
   const fbRes = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -262,58 +287,62 @@ Streamhost`
     return res.status(409).json({ error: 'slot_taken', message: 'This slot was just booked. Please pick another time.' })
   }
 
-  // ── 2. Create Google Calendar event + Meet link ────────────────────
-  const endDt = new Date(slotDt.getTime() + 30 * 60 * 1000)
+  // ── 2. Create Google Calendar event ────────────────────────────────
+  const endDt = new Date(slotDt.getTime() + duration * 60 * 1000)
+  const calUrl = isR2
+    ? 'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all'
+    : `https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all`
   const requestId = `streamhost-book-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const calBody = {
+    summary:     `Round ${round} Interview — ${name} · ${roleLabel}`,
+    description: isR2
+      ? `Round 2 In-Person Interview · Streamhost\nVenue: ${R2_ADDRESS}\nCandidate: ${name}\nRole: ${roleLabel}${phone ? `\nPhone: ${phone}` : ''}`
+      : `Round 1 Interview · Streamhost · Google Meet\nCandidate: ${name}\nRole: ${roleLabel}${phone ? `\nPhone: ${phone}` : ''}`,
+    start: { dateTime: slotDt.toISOString(), timeZone: 'Asia/Kuala_Lumpur' },
+    end:   { dateTime: endDt.toISOString(),  timeZone: 'Asia/Kuala_Lumpur' },
+    attendees: [
+      { email, displayName: name },
+      { email: process.env.ALVIN_EMAIL || 'alvinwee@streamhost.app' },
+    ],
+    reminders: {
+      useDefault: false,
+      overrides: [
+        { method: 'email', minutes: 1440 },
+        { method: 'email', minutes: 60 },
+        { method: 'popup', minutes: 15 },
+      ],
+    },
+  }
+  if (isR2) {
+    calBody.location = R2_ADDRESS
+  } else {
+    calBody.conferenceData = { createRequest: { requestId, conferenceSolutionKey: { type: 'hangoutsMeet' } } }
+  }
   let evtRes, evt
   try {
-    evtRes = await fetch(
-      'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all',
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          summary:     `Interview — ${name} · ${roleLabel}`,
-          description: `Round 1 Interview · Streamhost · Google Meet\nCandidate: ${name}\nRole: ${roleLabel}${phone ? `\nPhone: ${phone}` : ''}`,
-          start: { dateTime: slotDt.toISOString(), timeZone: 'Asia/Kuala_Lumpur' },
-          end:   { dateTime: endDt.toISOString(),  timeZone: 'Asia/Kuala_Lumpur' },
-          attendees: [
-            { email, displayName: name },
-            { email: process.env.ALVIN_EMAIL || 'alvinwee@streamhost.app' },
-          ],
-          conferenceData: {
-            createRequest: {
-              requestId,
-              conferenceSolutionKey: { type: 'hangoutsMeet' },
-            },
-          },
-          reminders: {
-            useDefault: false,
-            overrides: [
-              { method: 'email', minutes: 1440 },
-              { method: 'email', minutes: 60 },
-              { method: 'popup', minutes: 15 },
-            ],
-          },
-        }),
-      }
-    )
+    evtRes = await fetch(calUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(calBody),
+    })
     evt = await evtRes.json()
     if (!evtRes.ok) throw new Error(evt.error?.message || 'Calendar API error')
   } catch (e) {
     return res.status(500).json({ error: `Failed to create calendar event: ${e.message}` })
   }
 
-  const meetLink = evt.conferenceData?.entryPoints?.find(ep => ep.entryPointType === 'video')?.uri || null
+  const meetLink = isR2 ? null : (evt.conferenceData?.entryPoints?.find(ep => ep.entryPointType === 'video')?.uri || null)
   const eventId  = evt.id
   const slotFmt  = fmtMYT(slot)
 
   const icsPayload = {
     uid:             `${eventId}@streamhost`,
-    title:           `Interview — ${roleLabel} at Streamhost`,
+    title:           `Round ${round} Interview — ${roleLabel} at Streamhost`,
     start:           slotDt.toISOString(),
-    durationMinutes: 30,
-    description:     `Interviewer: Alvin Wee (CEO, Streamhost)\nRole: ${roleLabel}`,
+    durationMinutes: duration,
+    description:     isR2
+      ? `Round 2 In-Person Interview\nVenue: ${R2_ADDRESS}\nInterviewer: Alvin Wee (CEO, Streamhost)\nRole: ${roleLabel}`
+      : `Interviewer: Alvin Wee (CEO, Streamhost)\nRole: ${roleLabel}`,
     attendees:       [
       { name, email },
       { name: 'Alvin Wee', email: process.env.ALVIN_EMAIL || 'alvinwee@streamhost.app' },
@@ -328,7 +357,28 @@ Streamhost`
 
     // Candidate confirmation
     const rescheduleLink = id ? `https://streamhost-book.vercel.app?name=${encodeURIComponent(name)}&role=${encodeURIComponent(roleLabel)}&email=${encodeURIComponent(email)}&id=${id}` : null
-    const candidateBody = `Hi ${name},
+    const candidateBody = isR2
+      ? `Hi ${name},
+
+Your Round 2 interview is confirmed. Here are your details:
+
+Date & Time: ${slotFmt} (Malaysia Time, UTC+8)
+Duration: 60 minutes
+Format: In-Person
+Venue: ${R2_ADDRESS}
+Interviewer: Alvin Wee, CEO — Streamhost
+
+Please arrive 5–10 minutes early. If you need directions, reply to this email.
+
+A calendar invite has been sent to your email.
+
+Need to reschedule? You have one reschedule available. Use your booking link:
+${rescheduleLink || 'Reply to this email to reschedule.'}
+
+See you soon,
+Alvin Wee
+Streamhost`
+      : `Hi ${name},
 
 Your interview is confirmed. Here are your details:
 
@@ -380,22 +430,19 @@ Streamhost`
     const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
     if (id && isValidUUID(id)) {
-      // Update existing candidate — sync any name/email/phone edits from the form
-      const patch = { stage: 'r1_scheduled', updated_at: new Date().toISOString() }
+      const nextStage = round === 2 ? 'r2_scheduled' : 'r1_scheduled'
+      const patch = { stage: nextStage, updated_at: new Date().toISOString() }
       if (name)  patch.name  = name
       if (email) patch.email = email
       if (phone) patch.phone = phone
-      await supabase
-        .from('hr_candidates')
-        .update(patch)
-        .eq('id', id)
+      await supabase.from('hr_candidates').update(patch).eq('id', id)
 
       await supabase.from('hr_interview_slots').insert({
         candidate_id:     id,
-        round:            1,
+        round,
         scheduled_at:     slotDt.toISOString(),
-        duration_minutes: 30,
-        platform:         'Google Meet',
+        duration_minutes: duration,
+        platform:         isR2 ? 'In-Person' : 'Google Meet',
         meeting_link:     meetLink,
         google_event_id:  eventId,
       })
@@ -410,10 +457,10 @@ Streamhost`
       if (newCand?.id) {
         await supabase.from('hr_interview_slots').insert({
           candidate_id:     newCand.id,
-          round:            1,
+          round,
           scheduled_at:     slotDt.toISOString(),
-          duration_minutes: 30,
-          platform:         'Google Meet',
+          duration_minutes: duration,
+          platform:         isR2 ? 'In-Person' : 'Google Meet',
           meeting_link:     meetLink,
           google_event_id:  eventId,
         })

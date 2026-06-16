@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Clock, Video, ChevronLeft, ChevronRight, AlertTriangle, Loader2, Calendar } from 'lucide-react'
+import { Clock, Video, MapPin, ChevronLeft, ChevronRight, AlertTriangle, Loader2, Calendar } from 'lucide-react'
+
+const R2_ADDRESS = 'Mercu Summer Suites, 8, Jalan Cendana, 50250 Kuala Lumpur'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
 
@@ -25,7 +27,7 @@ function fmtSlotTime(hhmm) {
   return `${h12}:${pad(m)} ${ampm}`
 }
 
-export default function SlotPicker({ booking, onSlotSelect, conflictBanner, onDismissConflict }) {
+export default function SlotPicker({ booking, round, onSlotSelect, conflictBanner, onDismissConflict }) {
   const [slots,        setSlots]        = useState({})
   const [loading,      setLoading]      = useState(true)
   const [fetchError,   setFetchError]   = useState(null)
@@ -109,12 +111,25 @@ export default function SlotPicker({ booking, onSlotSelect, conflictBanner, onDi
           <div className="pt-2 space-y-2.5">
             <div className="flex items-center gap-2.5 text-sm text-gray-300">
               <Clock size={14} className="text-accent flex-shrink-0" />
-              <span>30 minutes</span>
+              <span>{round === 2 ? '60 minutes' : '30 minutes'}</span>
             </div>
-            <div className="flex items-center gap-2.5 text-sm text-gray-300">
-              <Video size={14} className="text-accent flex-shrink-0" />
-              <span>Google Meet</span>
-            </div>
+            {round === 2 ? (
+              <>
+                <div className="flex items-center gap-2.5 text-sm text-gray-300">
+                  <MapPin size={14} className="text-accent flex-shrink-0" />
+                  <span>In-Person</span>
+                </div>
+                <div className="flex items-start gap-2.5 text-sm text-gray-300">
+                  <MapPin size={14} className="text-accent flex-shrink-0 mt-0.5" />
+                  <span className="leading-snug">{R2_ADDRESS}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2.5 text-sm text-gray-300">
+                <Video size={14} className="text-accent flex-shrink-0" />
+                <span>Google Meet</span>
+              </div>
+            )}
             <div className="flex items-center gap-2.5 text-sm text-gray-300">
               <Calendar size={14} className="text-accent flex-shrink-0" />
               <span>Asia/KL (MYT, UTC+8)</span>

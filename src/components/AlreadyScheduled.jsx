@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
-import { Calendar, Video, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Calendar, Video, MapPin, AlertTriangle, RefreshCw } from 'lucide-react'
+
+const R2_ADDRESS = 'Mercu Summer Suites, 8, Jalan Cendana, 50250 Kuala Lumpur'
 
 function fmtMYT(iso) {
   return new Date(iso).toLocaleString('en-MY', {
@@ -9,7 +11,7 @@ function fmtMYT(iso) {
   })
 }
 
-export default function AlreadyScheduled({ candidate, slot, onReschedule }) {
+export default function AlreadyScheduled({ candidate, slot, round, onReschedule }) {
   const [confirmReschedule, setConfirmReschedule] = useState(false)
   const alreadyRescheduled = !!slot?.rescheduled_at
 
@@ -43,11 +45,19 @@ export default function AlreadyScheduled({ candidate, slot, onReschedule }) {
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">Date & Time</p>
                 <p className="text-sm font-medium text-white">{fmtMYT(slot.scheduled_at)}</p>
-                <p className="text-xs text-gray-500">Malaysia Time (UTC+8) · 30 minutes</p>
+                <p className="text-xs text-gray-500">Malaysia Time (UTC+8) · {round === 2 ? '60' : '30'} minutes</p>
               </div>
             </div>
 
-            {slot.meeting_link && (
+            {round === 2 ? (
+              <div className="flex items-start gap-3">
+                <MapPin size={16} className="text-accent mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Venue — In-Person</p>
+                  <p className="text-sm text-gray-200 leading-snug">{R2_ADDRESS}</p>
+                </div>
+              </div>
+            ) : slot.meeting_link && (
               <div className="flex items-start gap-3">
                 <Video size={16} className="text-accent mt-0.5 flex-shrink-0" />
                 <div>
@@ -92,7 +102,7 @@ export default function AlreadyScheduled({ candidate, slot, onReschedule }) {
                 <p className="text-sm font-semibold text-white">One reschedule allowed</p>
                 <p className="text-xs text-gray-400 mt-1">
                   You can change your slot once. After that, contact us directly to make any further changes.
-                  Your current Google Meet link will remain the same.
+                  {round === 2 ? 'The venue address will remain the same.' : 'Your current Google Meet link will remain the same.'}
                 </p>
               </div>
             </div>

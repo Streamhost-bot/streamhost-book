@@ -6,6 +6,7 @@ import AlreadyScheduled from './components/AlreadyScheduled'
 
 export default function App() {
   const p = new URLSearchParams(window.location.search)
+  const round = parseInt(p.get('round')) || 1
   const [booking, setBooking] = useState({
     name:  p.get('name')  || '',
     email: p.get('email') || '',
@@ -27,7 +28,7 @@ export default function App() {
   // On mount: if id param present, check if already booked
   useEffect(() => {
     if (!booking.id) return
-    fetch(`/api/booking?id=${booking.id}`)
+    fetch(`/api/booking?id=${booking.id}&round=${round}`)
       .then(r => r.json())
       .then(data => {
         if (data.slot) {
@@ -78,6 +79,7 @@ export default function App() {
         phone: updatedBooking.phone,
         role:  updatedBooking.role,
         id:    updatedBooking.id,
+        round,
       }
       if (isReschedule) {
         body.action = 'reschedule'
@@ -124,12 +126,14 @@ export default function App() {
         <AlreadyScheduled
           candidate={{ name: booking.name, email: booking.email }}
           slot={existingSlot}
+          round={round}
           onReschedule={handleReschedule}
         />
       )}
       {step === 1 && (
         <SlotPicker
           booking={booking}
+          round={round}
           onSlotSelect={handleSlotSelect}
           conflictBanner={slotConflict}
           onDismissConflict={() => setSlotConflict(false)}
@@ -140,6 +144,7 @@ export default function App() {
         <ConfirmForm
           slot={selectedSlot}
           booking={booking}
+          round={round}
           onBack={handleBack}
           onSubmit={handleSubmit}
           submitting={submitting}
@@ -152,6 +157,7 @@ export default function App() {
         <SuccessScreen
           slot={selectedSlot}
           meetLink={meetLink}
+          round={round}
           name={booking.name}
           email={booking.email}
           isReschedule={isReschedule}

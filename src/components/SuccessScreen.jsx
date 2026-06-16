@@ -1,5 +1,7 @@
 import React from 'react'
-import { CheckCircle, Video, Calendar, Mail, ExternalLink } from 'lucide-react'
+import { CheckCircle, Video, Calendar, Mail, ExternalLink, MapPin } from 'lucide-react'
+
+const R2_ADDRESS = 'Mercu Summer Suites, 8, Jalan Cendana, 50250 Kuala Lumpur'
 
 function fmtSlot(iso) {
   if (!iso) return ''
@@ -15,7 +17,7 @@ function fmtSlot(iso) {
   })
 }
 
-export default function SuccessScreen({ slot, meetLink, name, email, isReschedule }) {
+export default function SuccessScreen({ slot, meetLink, round, name, email, isReschedule }) {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-md text-center">
@@ -35,7 +37,7 @@ export default function SuccessScreen({ slot, meetLink, name, email, isReschedul
         <h1 className="text-2xl font-bold text-white mb-2">{isReschedule ? 'Interview rescheduled!' : "You're booked!"}</h1>
         <p className="text-gray-400 text-sm mb-8">
           {isReschedule
-            ? `Got it, ${name ? name.split(' ')[0] + '!' : ''} Your new time is confirmed. Same Google Meet link.`
+            ? `Got it, ${name ? name.split(' ')[0] + '!' : ''} Your new time is confirmed. ${round === 2 ? 'Same venue.' : 'Same Google Meet link.'}`
             : `${name ? `See you soon, ${name.split(' ')[0]}!` : 'See you soon!'} Your interview is confirmed.`}
         </p>
 
@@ -46,11 +48,20 @@ export default function SuccessScreen({ slot, meetLink, name, email, isReschedul
             <div>
               <p className="text-xs text-gray-500 mb-0.5">Date & Time</p>
               <p className="text-sm font-semibold text-white">{fmtSlot(slot)}</p>
-              <p className="text-xs text-gray-500 mt-0.5">Malaysia Time (UTC+8) · 30 minutes</p>
+              <p className="text-xs text-gray-500 mt-0.5">Malaysia Time (UTC+8) · {round === 2 ? '60' : '30'} minutes</p>
             </div>
           </div>
 
-          {meetLink && (
+          {round === 2 ? (
+            <div className="flex items-start gap-3">
+              <MapPin size={15} className="text-accent flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5">Venue</p>
+                <p className="text-sm font-medium text-white">In-Person</p>
+                <p className="text-xs text-gray-400 mt-0.5 leading-snug">{R2_ADDRESS}</p>
+              </div>
+            </div>
+          ) : meetLink && (
             <div className="flex items-start gap-3">
               <Video size={15} className="text-accent flex-shrink-0 mt-0.5" />
               <div className="min-w-0">
@@ -78,7 +89,7 @@ export default function SuccessScreen({ slot, meetLink, name, email, isReschedul
           </div>
         </div>
 
-        {meetLink && (
+        {round !== 2 && meetLink && (
           <a
             href={meetLink}
             target="_blank"
