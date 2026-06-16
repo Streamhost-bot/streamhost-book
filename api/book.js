@@ -368,7 +368,9 @@ Format: In-Person
 Venue: ${R2_ADDRESS}
 Interviewer: Alvin Wee, CEO — Streamhost
 
-Please arrive 5–10 minutes early. If you need directions, reply to this email.
+When you arrive at the lobby, WhatsApp Alvin at +60 19-774 6396 and he will come down to bring you up.
+
+Please arrive 5–10 minutes early.
 
 A calendar invite has been sent to your email.
 
@@ -377,6 +379,7 @@ ${rescheduleLink || 'Reply to this email to reschedule.'}
 
 See you soon,
 Alvin Wee
++60 19-774 6396
 Streamhost`
       : `Hi ${name},
 

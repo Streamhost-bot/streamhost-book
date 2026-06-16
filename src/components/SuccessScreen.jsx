@@ -53,14 +53,25 @@ export default function SuccessScreen({ slot, meetLink, round, name, email, isRe
           </div>
 
           {round === 2 ? (
-            <div className="flex items-start gap-3">
-              <MapPin size={15} className="text-accent flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs text-gray-500 mb-0.5">Venue</p>
-                <p className="text-sm font-medium text-white">In-Person</p>
-                <p className="text-xs text-gray-400 mt-0.5 leading-snug">{R2_ADDRESS}</p>
+            <>
+              <div className="flex items-start gap-3">
+                <MapPin size={15} className="text-accent flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Venue</p>
+                  <p className="text-sm font-medium text-white">In-Person</p>
+                  <p className="text-xs text-gray-400 mt-0.5 leading-snug">{R2_ADDRESS}</p>
+                </div>
               </div>
-            </div>
+              <div className="flex items-start gap-3">
+                <svg className="w-[15px] h-[15px] text-accent flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">When you arrive</p>
+                  <p className="text-sm font-medium text-white">WhatsApp Alvin</p>
+                  <a href="https://wa.me/60197746396" target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline">+60 19-774 6396</a>
+                  <p className="text-xs text-gray-500 mt-0.5">He'll come down to bring you up.</p>
+                </div>
+              </div>
+            </>
           ) : meetLink && (
             <div className="flex items-start gap-3">
               <Video size={15} className="text-accent flex-shrink-0 mt-0.5" />

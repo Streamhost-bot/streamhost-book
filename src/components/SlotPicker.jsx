@@ -123,6 +123,7 @@ export default function SlotPicker({ booking, round, onSlotSelect, conflictBanne
                   <MapPin size={14} className="text-accent flex-shrink-0 mt-0.5" />
                   <span className="leading-snug">{R2_ADDRESS}</span>
                 </div>
+                <p className="text-xs text-gray-500 leading-snug">A contact number will be in your confirmation email — just WhatsApp when you arrive and we'll come down.</p>
               </>
             ) : (
               <div className="flex items-center gap-2.5 text-sm text-gray-300">
