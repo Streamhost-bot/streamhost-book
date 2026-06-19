@@ -43,7 +43,7 @@ export default function SlotPicker({ booking, round, onSlotSelect, conflictBanne
     const from = formatDateKey(today)
     const toDate = new Date(today.getTime() + 20 * 24 * 60 * 60 * 1000)
     const to = formatDateKey(toDate)
-    fetch(`/api/slots?from=${from}&to=${to}`)
+    fetch(`/api/slots?from=${from}&to=${to}&round=${round}`)
       .then(r => r.json())
       .then(d => {
         if (d.error) throw new Error(d.error)

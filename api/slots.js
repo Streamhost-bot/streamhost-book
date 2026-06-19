@@ -24,7 +24,7 @@ function mytDateKey(date) {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
 }
 
-function generateSlots(busyIntervals, from, to) {
+function generateSlots(busyIntervals, from, to, startHour = 10) {
   const result = {}
   const now = new Date()
   const cutoff = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000)
@@ -43,7 +43,7 @@ function generateSlots(busyIntervals, from, to) {
       const dateKey  = mytDateKey(cursor)
       const daySlots = []
 
-      for (let h = 10; h <= 16; h++) {
+      for (let h = startHour; h <= 16; h++) {
         for (let m = 0; m < 60; m += 30) {
           if (h === 16 && m > 30) continue  // last valid slot: 16:30
 
@@ -83,8 +83,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { from, to } = req.query
+  const { from, to, round } = req.query
   if (!from || !to) return res.status(400).json({ error: 'from and to params required (YYYY-MM-DD)' })
+  const startHour = Number(round) === 2 ? 11 : 10
 
   const fromDate = new Date(`${from}T00:00:00+08:00`)
   const toDate   = new Date(`${to}T23:59:59+08:00`)
@@ -107,7 +108,7 @@ export default async function handler(req, res) {
     })
     const fbData = await fbRes.json()
     const busy   = fbData.calendars?.primary?.busy || []
-    const slots  = generateSlots(busy, from, to)
+    const slots  = generateSlots(busy, from, to, startHour)
     return res.status(200).json({ slots })
   } catch (e) {
     return res.status(500).json({ error: e.message })
