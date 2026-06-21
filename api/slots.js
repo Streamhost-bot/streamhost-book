@@ -85,7 +85,7 @@ export default async function handler(req, res) {
 
   const { from, to, round } = req.query
   if (!from || !to) return res.status(400).json({ error: 'from and to params required (YYYY-MM-DD)' })
-  const startHour = Number(round) === 2 ? 11 : 10
+  const startHour = 11
 
   const fromDate = new Date(`${from}T00:00:00+08:00`)
   const toDate   = new Date(`${to}T23:59:59+08:00`)
